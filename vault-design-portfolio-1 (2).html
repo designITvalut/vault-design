@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vault Design — Thumbnails That Force The Click</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --black: #050508;
+    --deep: #080b12;
+    --neon-blue: #00d4ff;
+    --neon-green: #00ff88;
+    --neon-blue-dim: rgba(0,212,255,0.15);
+    --neon-green-dim: rgba(0,255,136,0.15);
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(0,212,255,0.2);
+    --text: #e8f4f8;
+    --muted: rgba(232,244,248,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 2px; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 18px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(5,5,8,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0,212,255,0.1);
+  }
+
+  .nav-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+  }
+
+  .nav-links { display: flex; gap: 36px; }
+  .nav-links a {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--neon-blue); }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    padding: 120px 24px 80px;
+  }
+
+  .cyber-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridPulse 8s ease-in-out infinite;
+  }
+
+  @keyframes gridPulse {
+    0%,100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .hero-glow-left {
+    position: absolute; left: -200px; top: 20%;
+    width: 600px; height: 600px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-glow-right {
+    position: absolute; right: -200px; bottom: 10%;
+    width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,255,136,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-content { position: relative; z-index: 2; max-width: 860px; }
+
+  .hero-badge {
+    display: inline-block;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--neon-green);
+    border: 1px solid rgba(0,255,136,0.3);
+    padding: 6px 20px;
+    border-radius: 2px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.8s 0.15s ease both;
+  }
+
+  .hero-title span {
+    display: block;
+    background: linear-gradient(135deg, #ffffff 0%, var(--neon-blue) 50%, var(--neon-green) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 48px;
+    animation: fadeUp 0.8s 0.3s ease both;
+  }
+
+  .hero-sub strong {
+    color: var(--neon-blue);
+    font-weight: 600;
+  }
+
+  .btn-neon {
+    display: inline-block;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 16px 40px;
+    border: 1.5px solid var(--neon-blue);
+    color: var(--neon-blue);
+    background: transparent;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: color 0.3s, box-shadow 0.3s;
+    box-shadow: 0 0 20px rgba(0,212,255,0.25), inset 0 0 20px rgba(0,212,255,0.05);
+    animation: fadeUp 0.8s 0.45s ease both;
+  }
+
+  .btn-neon::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--neon-blue);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: -1;
+  }
+
+  .btn-neon:hover::before { transform: translateX(0); }
+  .btn-neon:hover {
+    color: var(--black);
+    box-shadow: 0 0 40px rgba(0,212,255,0.6), 0 0 80px rgba(0,212,255,0.2);
+  }
+
+  .btn-neon.green {
+    border-color: var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: 0 0 20px rgba(0,255,136,0.25), inset 0 0 20px rgba(0,255,136,0.05);
+  }
+  .btn-neon.green::before { background: var(--neon-green); }
+  .btn-neon.green:hover {
+    color: var(--black);
+    box-shadow: 0 0 40px rgba(0,255,136,0.6);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTIONS ── */
+  section { padding: 100px 48px; }
+
+  .section-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--neon-green);
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.8rem, 3.5vw, 3rem);
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: #fff;
+    margin-bottom: 60px;
+  }
+
+  .section-title span {
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ── THUMBNAILS ── */
+  #thumbnails { background: var(--deep); }
+
+  .thumb-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto 32px;
+  }
+
+  .thumb-card {
+    aspect-ratio: 16/9;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .thumb-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 60px rgba(0,212,255,0.2);
+    border-color: var(--neon-blue);
+  }
+
+  .thumb-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .thumb-placeholder {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(0,255,136,0.03));
+  }
+
+  .thumb-placeholder .ph-icon {
+    font-size: 2rem;
+    opacity: 0.3;
+  }
+
+  .thumb-placeholder .ph-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 3px;
+    color: var(--neon-blue);
+    opacity: 0.5;
+    text-transform: uppercase;
+  }
+
+  .thumb-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s;
+  }
+
+  .thumb-card:hover .thumb-overlay { opacity: 1; }
+
+  .thumb-overlay span {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: var(--neon-blue);
+    text-transform: uppercase;
+    border: 1px solid var(--neon-blue);
+    padding: 8px 16px;
+  }
+
+  .niche-tags {
+    display: flex; align-items: center; justify-content: center; gap: 24px;
+    margin-top: 8px;
+  }
+
+  .niche-tag {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--neon-blue);
+    padding: 6px 16px;
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 1px;
+  }
+
+  .niche-divider { color: var(--neon-green); font-size: 1.2rem; }
+
+  /* ── INSTAGRAM ── */
+  #instagram { background: var(--black); }
+
+  .insta-desc {
+    font-size: 1rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    max-width: 520px;
+    margin-bottom: 56px;
+    line-height: 1.7;
+  }
+
+  .insta-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .insta-circle {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    cursor: pointer;
+  }
+
+  .insta-ring {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-green));
+    box-shadow: 0 0 20px rgba(0,212,255,0.2);
+    transition: box-shadow 0.3s, transform 0.3s;
+  }
+
+  .insta-circle:hover .insta-ring {
+    box-shadow: 0 0 40px rgba(0,212,255,0.5);
+    transform: scale(1.08);
+  }
+
+  .insta-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: var(--deep);
+    border: 2px solid var(--black);
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .insta-inner img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .insta-ph {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    color: var(--neon-blue);
+    opacity: 0.3;
+  }
+
+  .insta-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── SERVICES ── */
+  #services {
+    background: var(--deep);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #services::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .price-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    padding: 40px 32px;
+    backdrop-filter: blur(20px);
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .price-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .price-card:hover::before { opacity: 1; }
+  .price-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 80px rgba(0,212,255,0.1);
+  }
+
+  .price-card.featured {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 40px rgba(0,255,136,0.1), 0 0 80px rgba(0,255,136,0.05);
+  }
+
+  .price-card.featured::before {
+    background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+    opacity: 1;
+  }
+
+  .featured-badge {
+    position: absolute; top: 16px; right: 16px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--black);
+    background: var(--neon-green);
+    padding: 4px 10px;
+    border-radius: 1px;
+  }
+
+  .card-icon { font-size: 1.8rem; margin-bottom: 20px; }
+
+  .card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .card-price {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--neon-blue);
+    margin-bottom: 4px;
+  }
+
+  .price-card.featured .card-price { color: var(--neon-green); }
+
+  .card-per {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-bottom: 28px;
+  }
+
+  .card-divider {
+    height: 1px;
+    background: var(--glass-border);
+    margin-bottom: 28px;
+  }
+
+  .card-features {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 12px;
+    margin-bottom: 36px;
+  }
+
+  .card-features li {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .card-features li::before {
+    content: '▸';
+    color: var(--neon-blue);
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  .price-card.featured .card-features li::before { color: var(--neon-green); }
+
+  .card-btn {
+    display: block;
+    width: 100%;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    text-decoration: none;
+    padding: 14px;
+    border: 1.5px solid var(--neon-blue);
+    color: var(--neon-blue);
+    background: transparent;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 15px rgba(0,212,255,0.15);
+  }
+
+  .card-btn:hover {
+    background: var(--neon-blue);
+    color: var(--black);
+    box-shadow: 0 0 40px rgba(0,212,255,0.5);
+  }
+
+  .price-card.featured .card-btn {
+    border-color: var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: 0 0 15px rgba(0,255,136,0.2);
+  }
+
+  .price-card.featured .card-btn:hover {
+    background: var(--neon-green);
+    color: var(--black);
+    box-shadow: 0 0 40px rgba(0,255,136,0.5);
+  }
+
+  /* ── CONTACT ── */
+  #contact {
+    background: var(--black);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    padding: 120px 48px;
+  }
+
+  #contact::before {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px; height: 400px;
+    background: radial-gradient(ellipse, rgba(0,212,255,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .contact-sub {
+    font-size: 1.1rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 56px;
+    font-weight: 400;
+  }
+
+  .contact-btns {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 32px;
+    border-top: 1px solid rgba(0,212,255,0.08);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 3px;
+    color: rgba(232,244,248,0.2);
+    text-transform: uppercase;
+  }
+
+  footer span {
+    color: var(--neon-blue);
+  }
+
+  /* ── SCROLL ANIMATIONS ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    section { padding: 80px 20px; }
+
+    .thumb-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .cards-row {
+      grid-template-columns: 1fr;
+    }
+
+    .insta-row { gap: 12px; }
+    .insta-ring { width: 72px; height: 72px; }
+
+    #contact { padding: 80px 20px; }
+    .contact-btns { flex-direction: column; align-items: center; }
+    .btn-neon { width: 260px; text-align: center; }
+  }
+
+  @media (max-width: 480px) {
+    .thumb-grid { grid-template-columns: 1fr; }
+    .insta-ring { width: 60px; height: 60px; }
+  }
+
+  /* Scanline effect */
+  .scanline {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Vault Design</div>
+  <div class="nav-links">
+    <a href="#thumbnails">Work</a>
+    <a href="#instagram">Covers</a>
+    <a href="#services">Services</a>
+    <a href="#contact">Contact</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="cyber-grid"></div>
+  <div class="hero-glow-left"></div>
+  <div class="hero-glow-right"></div>
+  <div class="hero-content">
+    <div class="hero-badge">⬡ Vault Design Studio ⬡</div>
+    <h1 class="hero-title">
+      <span>I Design Thumbnails<br/>That Force The Click</span>
+    </h1>
+    <p class="hero-sub">
+      YouTube Thumbnail Designer &amp; Instagram Cover Designer<br/>
+      <strong>Strategy &amp; Mindset</strong> &nbsp;|&nbsp; <strong>Gaming</strong> &nbsp;|&nbsp; <strong>AI</strong>
+    </p>
+    <a href="#thumbnails" class="btn-neon">View My Work</a>
+  </div>
+</section>
+
+<!-- THUMBNAILS -->
+<section id="thumbnails">
+  <div class="reveal">
+    <div class="section-label">// Portfolio</div>
+    <h2 class="section-title">Thumbnail <span>Work</span></h2>
+  </div>
+
+  <div class="thumb-grid reveal">
+    <!-- Gaming 1 -->
+    <div class="thumb-card">
+      <img src="gaming1.png" style="width:100%;height:100%;object-fit:cover;">
+      <div class="thumb-overlay"><span>Gaming</span></div>
+    </div>
+    <!-- Gaming 2 -->
+    <div class="thumb-card">
+  <img src="gaming2.png" style="width:100%;height:100%;object-fit:cover;">
+  <div class="thumb-overlay"><span>Gaming</span></div>
+</div>
+    <!-- AI 1 -->
+    <div class="thumb-card">
+  <img src="ai1.png" style="width:100%;height:100%;object-fit:cover;">
+  <div class="thumb-overlay"><span>AI TOOLS</span></div>
+</div>
+    <!-- AI 2 -->
+    <div class="thumb-card">
+  <img src="ai2.png" style="width:100%;height:100%;object-fit:cover;">
+  <div class="thumb-overlay"><span>AI TOOLS</span></div>
+</div>
+    <!-- Strategy 1 -->
+    <div class="thumb-card">
+  <img src="strategy1.png" style="width:100%;height:100%;object-fit:cover;">
+  <div class="thumb-overlay"><span>STRATEGY</span></div>
+</div>
+    <!-- MINDSET -->
+    <div class="thumb-card">
+  <img src="mindset1.png" style="width:100%;height:100%;object-fit:cover;">
+  <div class="thumb-overlay"><span>MINDSET</span></div>
+</div>
+
+  <div class="niche-tags reveal">
+    <span class="niche-tag">Gaming</span>
+    <span class="niche-divider">◆</span>
+    <span class="niche-tag">Strategy &amp; Mindset</span>
+    <span class="niche-divider">◆</span>
+    <span class="niche-tag">AI Tools</span>
+  </div>
+</section>
+
+<!-- INSTAGRAM -->
+<section id="instagram">
+  <div class="reveal">
+    <div class="section-label">// Branding</div>
+    <h2 class="section-title">Instagram <span>Covers</span></h2>
+    <p class="insta-desc">Custom branded highlight covers that make your profile impossible to ignore. Every cover designed to match your niche identity.</p>
+  </div>
+
+  <div class="insta-row reveal">
+    <div class="insta-circle">
+  <div style="width:90px;height:160px;border:2px solid #00d4ff;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,212,255,0.3);">
+    <img src="instareelcover1.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+  </div>
+  <span class="insta-label">Reel Cover 01</span>
+</div>
+    <div class="insta-circle">
+  <div style="width:90px;height:160px;border:2px solid #00d4ff;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,212,255,0.3);">
+    <img src="instareelcover2.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+  </div>
+  <span class="insta-label">Reel Cover 02</span>
+</div>
+    <div class="insta-circle">
+  <div style="width:90px;height:160px;border:2px solid #00d4ff;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,212,255,0.3);">
+    <img src="instareelcover3.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+  </div>
+  <span class="insta-label">Reel Cover 03</span>
+</div>
+</div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="reveal">
+    <div class="section-label">// Pricing</div>
+    <h2 class="section-title"><span>Services</span></h2>
+  </div>
+
+  <div class="cards-row">
+    <!-- Card 1 -->
+    <div class="price-card reveal reveal-delay-1">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">YouTube Thumbnail</div>
+      <div class="card-price">₹100</div>
+      <div class="card-per">per thumbnail</div>
+      <div class="card-divider"></div>
+      <ul class="card-features">
+        <li>Custom eye-catching design</li>
+        <li>High CTR focused composition</li>
+        <li>Delivered in 24 hours</li>
+      </ul>
+      <a href="https://www.threads.net/@design_by_vault" target="_blank" class="card-btn">Get Started</a>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="price-card reveal reveal-delay-2">
+      <div class="card-icon">📸</div>
+      <div class="card-title">Instagram Cover Pack</div>
+      <div class="card-price">₹150</div>
+      <div class="card-per">per pack</div>
+      <div class="card-divider"></div>
+      <ul class="card-features">
+        <li>Branded highlight covers</li>
+        <li>Consistent visual identity</li>
+        <li>Multiple icons included</li>
+      </ul>
+      <a href="https://www.threads.net/@design_by_vault" target="_blank" class="card-btn">Get Started</a>
+    </div>
+
+    <!-- Card 3 — Featured -->
+    <div class="price-card featured reveal reveal-delay-3">
+      <div class="featured-badge">⭐ Best Value</div>
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Bundle Deal</div>
+      <div class="card-price">₹220</div>
+      <div class="card-per">thumbnail + cover pack</div>
+      <div class="card-divider"></div>
+      <ul class="card-features">
+        <li>1 YouTube thumbnail</li>
+        <li>7 Instagram cover pack</li>
+        <li>Priority delivery</li>
+        <li>Free revision included</li>
+      </ul>
+      <a href="https://www.threads.net/@design_by_vault" target="_blank" class="card-btn">Get the Bundle</a>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="reveal">
+    <div class="section-label">// Connect</div>
+    <h2 class="section-title">Let's Work <span>Together</span></h2>
+    <p class="contact-sub">Got a project in mind? Let's talk.</p>
+  </div>
+  <div class="contact-btns reveal">
+    <a href="https://www.threads.net/@design_by_vault" target="_blank" class="btn-neon">DM on Threads</a>
+    <!-- Replace the # below with your WhatsApp link e.g. https://wa.me/91XXXXXXXXXX -->
+    <a href="https://wa.me/+916371325943" target="_blank" class="btn-neon green">Message on WhatsApp</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  &copy; 2026 <span>Vault Design</span> &nbsp;—&nbsp; All Rights Reserved &nbsp;|&nbsp; Crafted with precision
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Parallax on hero glow
+  document.addEventListener('mousemove', (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 30;
+    const y = (e.clientY / window.innerHeight - 0.5) * 30;
+    document.querySelector('.hero-glow-left').style.transform = `translate(${x}px, ${y}px)`;
+    document.querySelector('.hero-glow-right').style.transform = `translate(${-x}px, ${-y}px)`;
+  });
+</script>
+</body>
+</html>
